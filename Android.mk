@@ -1,5 +1,5 @@
 ifneq ($(USE_CAMERA_STUB),true)
-ifeq ($(strip $(BOARD_USES_QCOM_HARDWARE)), true)
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
 BUILD_LIBCAMERA:=true
 ifeq ($(BUILD_LIBCAMERA),true)
 
@@ -17,7 +17,7 @@ LOCAL_CFLAGS:= -DDLOPEN_LIBMMCAMERA=$(DLOPEN_LIBMMCAMERA)
 ifeq ($(strip $(TARGET_USES_ION)),true)
 LOCAL_CFLAGS += -DUSE_ION
 endif
-ifeq ($(call is-board-platform,msm8x60),true)
+ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 MM_CAM_FILES:= \
         mm_camera_interface2.c \
         mm_camera_stream.c \
@@ -30,7 +30,7 @@ endif
 
 LOCAL_CFLAGS+= -DHW_ENCODE
 
-ifeq ($(call is-board-platform,msm8x60),true)
+ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_HAL_FILES := QCameraHAL.cpp QCameraHWI_Parm.cpp\
                    QCameraHWI.cpp QCameraHWI_Preview.cpp \
                    QCameraHWI_Record.cpp QCameraHWI_Still.cpp \
@@ -50,7 +50,7 @@ LOCAL_SRC_FILES := $(MM_CAM_FILES) $(LOCAL_HAL_FILES)
 
 
 
-ifeq ($(call is-chipset-prefix-in-board-platform,msm7x27),true)
+ifeq ($(TARGET_BOARD_PLATFORM), msm7x27)
 LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=6 -D_ANDROID_
 else
 LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=4 -D_ANDROID_
@@ -66,7 +66,7 @@ LOCAL_C_INCLUDES+= \
     $(TARGET_OUT_HEADERS)/mm-camera/common \
     $(TARGET_OUT_HEADERS)/mm-still/jpeg \
 
-ifeq ($(call is-board-platform,msm8x60),true)
+ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-core/omxcore
 LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-still/mm-omx
 endif
@@ -74,7 +74,7 @@ endif
 LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc \
                     hardware/qcom/display/libgenlock
 
-ifeq ($(call is-board-platform,msm8x60),true)
+ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg libmmstillomx libimage-jpeg-enc-omx-comp
 else
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg
