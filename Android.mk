@@ -14,7 +14,7 @@ include $(CLEAR_VARS)
 
 LOCAL_CFLAGS:= -DDLOPEN_LIBMMCAMERA=$(DLOPEN_LIBMMCAMERA)
 
-ifeq ($(strip $(TARGET_USES_ION)),true)
+ifeq ($(TARGET_USES_ION),true)
 LOCAL_CFLAGS += -DUSE_ION
 endif
 ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
@@ -59,7 +59,7 @@ endif
 # To Choose neon/C routines for YV12 conversion
 LOCAL_CFLAGS+= -DUSE_NEON_CONVERSION
 # Uncomment below line to enable smooth zoom
-#LOCAL_CFLAGS+= -DCAMERA_SMOOTH_ZOOM
+# LOCAL_CFLAGS+= -DCAMERA_SMOOTH_ZOOM
 
 LOCAL_C_INCLUDES+= \
     $(TARGET_OUT_HEADERS)/mm-camera \
