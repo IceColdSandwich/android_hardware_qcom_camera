@@ -47,9 +47,6 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_SRC_FILES := $(MM_CAM_FILES) $(LOCAL_HAL_FILES)
 
-
-
-
 ifeq ($(TARGET_BOARD_PLATFORM), msm7x27)
 LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=6 -D_ANDROID_
 else
@@ -73,7 +70,7 @@ endif
 
 LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc \
                     hardware/qcom/display/libgenlock \
-                    hardware/qcom/media/libstagefrighthw
+                    hardware/qcom/media/libstagefrighthw/$(TARGET_BOARD_PLATFORM)
 
 ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg libmmstillomx libimage-jpeg-enc-omx-comp
