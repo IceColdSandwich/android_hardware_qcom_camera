@@ -27,16 +27,6 @@ MM_CAM_FILES:= \
         mm_camera_notify.c mm_camera_helper.c \
         mm_omx_jpeg_encoder.c
 endif
-ifeq ($(TARGET_BOARD_PLATFORM), msm7x30)
-MM_CAM_FILES:= \
-        mm_camera_interface2.c \
-        mm_camera_stream.c \
-        mm_camera_channel.c \
-        mm_camera.c \
-        mm_camera_poll_thread.c \
-        mm_camera_notify.c mm_camera_helper.c \
-        mm_omx_jpeg_encoder.c
-endif
 
 LOCAL_CFLAGS+= -DHW_ENCODE
 
@@ -47,16 +37,8 @@ LOCAL_HAL_FILES := QCameraHAL.cpp QCameraHWI_Parm.cpp\
                    QCameraHWI_Mem.cpp QCameraHWI_Display.cpp \
                    QCameraStream.cpp QualcommCamera2.cpp
 else
-ifeq ($(TARGET_BOARD_PLATFORM), msm7x30)
-LOCAL_HAL_FILES := QCameraHAL.cpp QCameraHWI_Parm.cpp\
-                   QCameraHWI.cpp QCameraHWI_Preview.cpp \
-                   QCameraHWI_Record.cpp QCameraHWI_Still.cpp \
-                   QCameraHWI_Mem.cpp QCameraHWI_Display.cpp \
-                   QCameraStream.cpp QualcommCamera2.cpp
-else
 LOCAL_HAL_FILES := QualcommCamera.cpp QualcommCameraHardware.cpp
 MM_CAM_FILES:=
-endif
 endif
 
 #yyan if debug service layer and up , use stub camera!
@@ -88,10 +70,6 @@ ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-core/omxcore
 LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-still/mm-omx
 endif
-ifeq ($(TARGET_BOARD_PLATFORM), msm7x30)
-LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-core/omxcore
-LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-still/mm-omx
-endif
 
 LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc \
                     hardware/qcom/display/libgenlock \
@@ -100,11 +78,7 @@ LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc \
 ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg libmmstillomx libimage-jpeg-enc-omx-comp
 else
-ifeq ($(TARGET_BOARD_PLATFORM), msm7x30)
-LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg libmmstillomx libimage-jpeg-enc-omx-comp
-else
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg
-endif
 endif
 
 LOCAL_SHARED_LIBRARIES+= libgenlock libbinder
