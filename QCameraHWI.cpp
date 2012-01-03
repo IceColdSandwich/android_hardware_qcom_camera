@@ -751,6 +751,7 @@ bool QCameraHardwareInterface::preview_parm_config (cam_ctrl_dimension_t* dim,
         //Setting to default Format.
         dim->prev_format = CAMERA_YUV_420_NV21;
     }
+    dim->prev_padding_format =  getPreviewPadding( );
 
     dim->enc_format = CAMERA_YUV_420_NV12;
     dim->orig_video_width = mDimension.orig_video_width;
@@ -907,9 +908,6 @@ status_t QCameraHardwareInterface::startPreview2()
     if(isZSLMode()) {
         /* Store HAL object in snapshot stream Object */
         mStreamSnap->setHALCameraControl(this);
-
-        /* Call prepareSnapshot before stopping preview */
-        mStreamSnap->prepareHardware();
 
         /* Call snapshot init*/
         ret =  mStreamSnap->init();
@@ -1542,9 +1540,12 @@ status_t  QCameraHardwareInterface::takePicture()
 			mCameraState = CAMERA_STATE_ERROR;
         mPreviewState = QCAMERA_HAL_TAKE_PICTURE;
 		break;
+	case QCAMERA_HAL_RECORDING_STARTED:
+        LOGI("Got request for live snapshot");
+        takeLiveSnapshot();
+        break;
 	case QCAMERA_HAL_PREVIEW_STOPPED:
 	case QCAMERA_HAL_PREVIEW_START:
-	case QCAMERA_HAL_RECORDING_STARTED:
  	default:
 		ret = UNKNOWN_ERROR;
         break;
@@ -1786,21 +1787,15 @@ void QCameraHardwareInterface::handleZoomEventForPreview(void)
              v4l2_crop.crop.top,
              v4l2_crop.crop.width,
              v4l2_crop.crop.height);
-#if 0 // mzhu
-        mOverlayLock.lock();
-        if(mOverlay != NULL){
-            LOGI("%s: Setting crop", __func__);
-            if ((v4l2_crop.crop.width != 0) && (v4l2_crop.crop.height != 0)) {
-                mOverlay->setCrop(v4l2_crop.crop.left, v4l2_crop.crop.top,
-                                  v4l2_crop.crop.width, v4l2_crop.crop.height);
-                LOGI("%s: Done setting crop", __func__);
-            } else {
-                LOGI("%s: Resetting crop", __func__);
-                mOverlay->setCrop(0, 0, previewWidth, previewHeight);
-            }
+
+        if ((v4l2_crop.crop.width != 0) && (v4l2_crop.crop.height != 0)) {
+             mPreviewWindow->set_crop(mPreviewWindow,
+                            v4l2_crop.crop.left,
+                            v4l2_crop.crop.top,
+                            v4l2_crop.crop.width,
+                            v4l2_crop.crop.height);
+             LOGI("%s: Done setting crop", __func__);
         }
-        mOverlayLock.unlock();
-#endif // mzhu
         LOGI("%s: Currrent zoom :%d",__func__, mCurrentZoom);
     }
 #if 0
@@ -1967,9 +1962,6 @@ void QCameraHardwareInterface::dumpFrameToFile(struct msm_frame* newFrame,
   enabled = atoi(value);
 
   LOGV(" newFrame =%p, frm_type = %d", newFrame, frm_type);
-  if(HAL_DUMP_FRM_PREVIEW == frm_type) {
-      enabled = HAL_DUMP_FRM_MASK_ALL | frm_type;
-  }
   if(enabled & HAL_DUMP_FRM_MASK_ALL) {
     if((enabled & frm_type) && newFrame) {
       frm_num = ((enabled & 0xffff0000) >> 16);
@@ -1981,32 +1973,29 @@ void QCameraHardwareInterface::dumpFrameToFile(struct msm_frame* newFrame,
       if( mDumpSkipCnt % skip_mode == 0) {
         if (mDumpFrmCnt >= 0 && mDumpFrmCnt <= frm_num) {
           int w, h;
-          cam_ctrl_dimension_t dim = mDimension;
-          status_t ret = cam_config_get_parm(mCameraId,
-            MM_CAMERA_PARM_DIMENSION, &dim);
           int file_fd;
           switch (frm_type) {
           case  HAL_DUMP_FRM_PREVIEW:
-            w = dim.display_width;
-            h = dim.display_height;
+            w = mDimension.display_width;
+            h = mDimension.display_height;
             snprintf(buf, sizeof(buf), "/data/%dp_%dx%d.yuv", mDumpFrmCnt, w, h);
             file_fd = open(buf, O_RDWR | O_CREAT, 0777);
             break;
           case HAL_DUMP_FRM_VIDEO:
-            w = dim.video_width;
-            h = dim.video_height;
+            w = mDimension.video_width;
+            h = mDimension.video_height;
             snprintf(buf, sizeof(buf),"/data/%dv_%dx%d.yuv", mDumpFrmCnt, w, h);
             file_fd = open(buf, O_RDWR | O_CREAT, 0777);
             break;
           case HAL_DUMP_FRM_MAIN:
-            w = dim.picture_width;
-            h = dim.picture_height;
+            w = mDimension.picture_width;
+            h = mDimension.picture_height;
             snprintf(buf, sizeof(buf), "/data/%dm_%dx%d.yuv", mDumpFrmCnt, w, h);
             file_fd = open(buf, O_RDWR | O_CREAT, 0777);
             break;
           case HAL_DUMP_FRM_THUMBNAIL:
-            w = dim.ui_thumbnail_width;
-            h = dim.ui_thumbnail_height;
+            w = mDimension.ui_thumbnail_width;
+            h = mDimension.ui_thumbnail_height;
             snprintf(buf, sizeof(buf),"/data/%dt_%dx%d.yuv", mDumpFrmCnt, w, h);
             file_fd = open(buf, O_RDWR | O_CREAT, 0777);
             break;
@@ -2285,6 +2274,11 @@ int QCameraHardwareInterface::releaseHeapMem( QCameraHalHeap_t *heap)
         heap->cbcr_offset = 0;
 	}
 	return rc;
+}
+
+preview_format_info_t  QCameraHardwareInterface::getPreviewFormatInfo( )
+{
+  return mPreviewFormatInfo;
 }
 
 }; // namespace android

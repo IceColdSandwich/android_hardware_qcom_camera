@@ -94,7 +94,8 @@ LOCAL_C_INCLUDES+= $(TARGET_OUT_HEADERS)/mm-still/mm-omx
 endif
 
 LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc \
-                    hardware/qcom/display/libgenlock
+                    hardware/qcom/display/libgenlock \
+                    hardware/qcom/media/libstagefrighthw
 
 ifeq ($(TARGET_BOARD_PLATFORM), msm8x60)
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils libmmjpeg libmmstillomx libimage-jpeg-enc-omx-comp

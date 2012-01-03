@@ -32,6 +32,7 @@
 #include <system/camera.h>
 #include <hardware/camera.h>
 #include <gralloc_priv.h>
+#include <QComOMXMetadata.h>
 
 extern "C" {
 #include <linux/android_pmem.h>
@@ -51,7 +52,7 @@ extern "C" {
 #define  NOT_FOUND -1
 
 #define VIDEO_BUFFER_COUNT 8
-#define PREVIEW_BUFFER_COUNT 4
+#define PREVIEW_BUFFER_COUNT 3
 #define MAX_ZOOM_RATIOS 62
 
 #ifdef Q12
@@ -65,6 +66,13 @@ extern "C" {
 struct str_map {
     const char *const desc;
     int val;
+};
+
+struct preview_format_info_t {
+   int Hal_format;
+   cam_format_t mm_cam_format;
+   cam_pad_format_t padding;
+   int num_planar;
 };
 
 typedef enum {
@@ -89,6 +97,10 @@ typedef enum {
   CAMERA_STATE_MAX
 } HAL_camera_state_type_t;
 
+enum {
+  BUFFER_UNLOCKED,
+  BUFFER_LOCKED,
+};
 
 typedef enum {
   HAL_DUMP_FRM_PREVIEW = 1,
@@ -128,6 +140,7 @@ typedef struct {
 	 int                     fd[MM_CAMERA_MAX_NUM_FRAMES];
 	 int                     local_flag[MM_CAMERA_MAX_NUM_FRAMES];
 	 camera_memory_t*        camera_memory[MM_CAMERA_MAX_NUM_FRAMES];
+     camera_memory_t*        metadata_memory[MM_CAMERA_MAX_NUM_FRAMES];
      int main_ion_fd[MM_CAMERA_MAX_NUM_FRAMES];
      struct ion_allocation_data alloc[MM_CAMERA_MAX_NUM_FRAMES];
      struct ion_fd_data ion_info_fd[MM_CAMERA_MAX_NUM_FRAMES];
@@ -339,6 +352,8 @@ public:
     void         getPreviewSize(int *preview_width, int *preview_height) const;
     cam_format_t getPreviewFormat() const;
 
+    cam_pad_format_t getPreviewPadding() const;
+
     //bool     useOverlay(void);
     //virtual status_t setOverlay(const sp<Overlay> &overlay);
 
@@ -377,6 +392,7 @@ public:
     int allocate_ion_memory(QCameraHalHeap_t *p_camera_memory, int cnt, int ion_type);
     int deallocate_ion_memory(QCameraHalHeap_t *p_camera_memory, int cnt);
     void dumpFrameToFile(const void * data, uint32_t size, char* name, char* ext, int index);
+    preview_format_info_t  getPreviewFormatInfo( );
 
 
 
@@ -418,6 +434,7 @@ private:
     bool supportsSceneDetection();
     bool supportsSelectableZoneAf();
     bool supportsFaceDetection();
+    bool supportsRedEyeReduction();
     bool preview_parm_config (cam_ctrl_dimension_t* dim,CameraParameters& parm);
 
     void stopPreviewInternal();
@@ -429,6 +446,7 @@ private:
 	status_t resumePreviewAfterSnapshot();
 
     status_t runFaceDetection();
+    status_t setCameraMode(const CameraParameters& params);
     status_t setPictureSizeTable(void);
     status_t setPreviewSizeTable(void);
     status_t setPreviewSize(const CameraParameters& params);
@@ -441,6 +459,7 @@ private:
     status_t setJpegQuality(const CameraParameters& params);
     status_t setNumOfSnapshot(const CameraParameters& params);
     status_t setJpegRotation(void);
+	int getJpegRotation(void);
     status_t setAntibanding(const CameraParameters& params);
     status_t setEffect(const CameraParameters& params);
     status_t setExposureCompensation(const CameraParameters &params);
@@ -476,6 +495,7 @@ private:
     status_t setFaceDetect(const CameraParameters& params);
     status_t setDenoise(const CameraParameters& params);
     status_t setHistogram(int histogram_en);
+    status_t setRecordingHint(const CameraParameters& params);
 
     isp3a_af_mode_t getAutoFocusMode(const CameraParameters& params);
     bool isValidDimension(int w, int h);
@@ -593,6 +613,7 @@ private:
     String8 mRedeyeReductionValues;
     String8 denoise_value;
     String8 mFpsRangesSupportedValues;
+    String8 mZslValues;
 
     friend class QCameraStream;
     friend class QCameraStream_record;
@@ -623,6 +644,7 @@ private:
      QCameraHalHeap_t     mRawMemory;
 	 camera_frame_metadata_t mMetadata;
 	 camera_face_t           mFace[MAX_ROI];
+     preview_format_info_t  mPreviewFormatInfo;
 };
 
 }; // namespace android

@@ -242,13 +242,19 @@ receiveCompleteJpegPicture(jpeg_event_t event)
     #endif
 
     LOGE("%s: Calling upperlayer callback to store JPEG image", __func__);
-    msg_type = isLiveSnapshot() ?
+  msg_type = isLiveSnapshot() ?
         (int)MEDIA_RECORDER_MSG_COMPRESSED_IMAGE : (int)CAMERA_MSG_COMPRESSED_IMAGE;
 
+  LOGE("<DEBUG> Msg type:%d",msg_type);
+    msg_type = CAMERA_MSG_COMPRESSED_IMAGE;
+    LOGE("<DEBUG> Msg type:%d",msg_type);
+
     mHalCamCtrl->dumpFrameToFile(mHalCamCtrl->mJpegMemory.camera_memory[0]->data, mJpegOffset, (char *)"marvin", (char *)"jpg", 0);
+    LOGE("<DEBUG> Done with dumping");
     if (mHalCamCtrl->mDataCb &&
         (mHalCamCtrl->mMsgEnabled & msg_type)) {
 
+        LOGE("<DEBUG> Callback is enabled");
         // Create camera_memory_t object backed by the same physical
         // memory but with actual bitstream size.
         camera_memory_t *encodedMem = mHalCamCtrl->mGetMemory(
@@ -259,13 +265,14 @@ receiveCompleteJpegPicture(jpeg_event_t event)
             return;
         }
 
+        LOGE("<DEBUG> Issue callback");
       mHalCamCtrl->mDataCb(msg_type,
                            encodedMem, 0, NULL,
                            mHalCamCtrl->mCallbackCookie);
-
+      LOGE("<DEBUG>Release Memory");
         encodedMem->release(encodedMem);
     } else {
-      LOGW("%s: JPEG callback was cancelled--not delivering image.", __func__);
+      LOGE("%s: JPEG callback was cancelled--not delivering image.", __func__);
     }
 
 
@@ -291,7 +298,8 @@ receiveCompleteJpegPicture(jpeg_event_t event)
     LOGD("%s: After omxJpegClose", __func__);
     /* free the resource we allocated to maintain the structure */
     //mm_camera_do_munmap(main_fd, (void *)main_buffer_addr, mSnapshotStreamBuf.frame_len);
-    free(mCurrentFrameEncoded);
+    if (!isLiveSnapshot())
+        free(mCurrentFrameEncoded);
     setSnapshotState(SNAPSHOT_STATE_JPEG_ENCODE_DONE);
 
     mNumOfRecievedJPEG++;
@@ -299,12 +307,10 @@ receiveCompleteJpegPicture(jpeg_event_t event)
     /* Before leaving check the jpeg queue. If it's not empty give the available
        frame for encoding*/
     if (!mSnapshotQueue.isEmpty()) {
-        LOGD("%s: JPEG Queue not empty. Dequeue and encode.", __func__);
-#if 0 //mzhu
+        LOGI("%s: JPEG Queue not empty. Dequeue and encode.", __func__);
         mm_camera_ch_data_buf_t* buf =
             (mm_camera_ch_data_buf_t *)mSnapshotQueue.dequeue();
         encodeDisplayAndSave(buf, 1);
-#endif //mzhu
     }
     else
     {
@@ -724,6 +730,7 @@ initSnapshotBuffers(cam_ctrl_dimension_t *dim, int num_of_buf)
     uint8_t num_planes;
     uint32_t planes[VIDEO_MAX_PLANES];
     mm_camera_reg_buf_t reg_buf;
+    int rotation = 0;
 
     LOGD("%s: E", __func__);
     memset(&reg_buf,  0,  sizeof(mm_camera_reg_buf_t));
@@ -755,7 +762,6 @@ initSnapshotBuffers(cam_ctrl_dimension_t *dim, int num_of_buf)
           ret = NO_MEMORY;
           goto end;
         }
-
     memset(reg_buf.snapshot.thumbnail.buf.mp, 0,
                num_of_buf * sizeof(mm_camera_mp_buf_t));
 
@@ -763,28 +769,42 @@ initSnapshotBuffers(cam_ctrl_dimension_t *dim, int num_of_buf)
     /* Set the JPEG Rotation here since get_buffer_offset needs
      * the value of rotation.*/
     mHalCamCtrl->setJpegRotation();
-
-    /*TBD: to be modified for 3D*/
-     mm_jpeg_encoder_get_buffer_offset( dim->picture_width, dim->picture_height,
-                                          &y_off, &cbcr_off, &frame_len,
-                                              &num_planes, planes);
-
-    if (mHalCamCtrl->initHeapMem (&mHalCamCtrl->mJpegMemory, 1, frame_len, 0, 0, MSM_PMEM_MAX, NULL, NULL, num_planes, planes) < 0) {
-        LOGE("%s: Error allocating JPEG memory", __func__);
-        ret = NO_MEMORY;
-        goto end;
+    rotation = mHalCamCtrl->getJpegRotation();
+    if(rotation != dim->rotation) {
+        dim->rotation = rotation;
+        ret = cam_config_set_parm(mHalCamCtrl->mCameraId, MM_CAMERA_PARM_DIMENSION, dim);
     }
+    num_planes = 2;
+    planes[0] = dim->picture_frame_offset.mp[0].len;
+    planes[1] = dim->picture_frame_offset.mp[1].len;
+    frame_len = dim->picture_frame_offset.frame_len;
+    y_off = dim->picture_frame_offset.mp[0].offset;
+    cbcr_off = dim->picture_frame_offset.mp[1].offset;
+    LOGE("%s: main image: rotation = %d, yoff = %d, cbcroff = %d, size = %d, width = %d, height = %d",
+         __func__, dim->rotation, y_off, cbcr_off, frame_len, dim->picture_width, dim->picture_height);
+	if (mHalCamCtrl->initHeapMem (&mHalCamCtrl->mJpegMemory, 1, frame_len, 0, 0,
+                                  MSM_PMEM_MAX, NULL, NULL, num_planes, planes) < 0) {
+		LOGE("%s: Error allocating JPEG memory", __func__);
+		ret = NO_MEMORY;
+		goto end;
+	}
 
-    if (mHalCamCtrl->initHeapMem(&mHalCamCtrl->mSnapshotMemory, num_of_buf,
-       frame_len, y_off, cbcr_off, MSM_PMEM_MAINIMG, &mSnapshotStreamBuf, &reg_buf.snapshot.main, num_planes, planes) < 0) {
-                ret = NO_MEMORY;
-                goto end;
-    };
+	if (mHalCamCtrl->initHeapMem(&mHalCamCtrl->mSnapshotMemory, num_of_buf,
+	   frame_len, y_off, cbcr_off, MSM_PMEM_MAINIMG, &mSnapshotStreamBuf,
+                                 &reg_buf.snapshot.main, num_planes, planes) < 0) {
+				ret = NO_MEMORY;
+				goto end;
+	};
+    num_planes = 2;
+    planes[0] = dim->thumb_frame_offset.mp[0].len;
+    planes[1] = dim->thumb_frame_offset.mp[1].len;
+    frame_len = planes[0] + planes[1];
+    y_off = dim->thumb_frame_offset.mp[0].offset;
+    cbcr_off = dim->thumb_frame_offset.mp[1].offset;
+    LOGE("%s: thumbnail: rotation = %d, yoff = %d, cbcroff = %d, size = %d, width = %d, height = %d",
+         __func__, dim->rotation, y_off, cbcr_off, frame_len,
+         dim->thumbnail_width, dim->thumbnail_height);
 
-    /* allocate memory for postview*/
-    mm_jpeg_encoder_get_buffer_offset( dim->ui_thumbnail_width, dim->ui_thumbnail_height,
-                                          &y_off, &cbcr_off, &frame_len,
-                                              &num_planes, planes);
     if (mHalCamCtrl->initHeapMem(&mHalCamCtrl->mThumbnailMemory, num_of_buf,
     frame_len, y_off, cbcr_off, MSM_PMEM_THUMBNAIL, &mPostviewStreamBuf,
         &reg_buf.snapshot.thumbnail, num_planes, planes) < 0) {
@@ -808,7 +828,6 @@ initSnapshotBuffers(cam_ctrl_dimension_t *dim, int num_of_buf)
     /* If we have reached here successfully, we have allocated buffer.
        Set state machine.*/
     setSnapshotState(SNAPSHOT_STATE_BUF_INITIALIZED);
-
 end:
     if (ret != NO_ERROR) {
         handleError();
@@ -1195,14 +1214,14 @@ takePictureLiveshot(mm_camera_ch_data_buf_t* recvd_frame,
     common_crop_t crop_info;
     uint32_t aspect_ratio;
 
-    LOGD("%s: E", __func__);
+    LOGE("%s: E", __func__);
 
     /* set flag to indicate we are doing livesnapshot */
     setModeLiveSnapshot(true);
 
-    LOGD("%s:Passed picture size: %d X %d", __func__,
+    LOGE("%s:Passed picture size: %d X %d", __func__,
          dim->picture_width, dim->picture_height);
-    LOGD("%s:Passed thumbnail size: %d X %d", __func__,
+    LOGE("%s:Passed thumbnail size: %d X %d", __func__,
          dim->ui_thumbnail_width, dim->ui_thumbnail_height);
 
     mPictureWidth = dim->picture_width;
@@ -1226,9 +1245,9 @@ takePictureLiveshot(mm_camera_ch_data_buf_t* recvd_frame,
             /* get picture failed. Give jpeg callback with NULL data
              * to the application to restore to preview mode
              */
-#if 0 //mzhu, fix me in snapshot bring up
+#if 1 //mzhu, fix me in snapshot bring up
             mHalCamCtrl->mDataCb(MEDIA_RECORDER_MSG_COMPRESSED_IMAGE,
-                                       NULL,
+                                       NULL, 0, NULL,
                                        mHalCamCtrl->mCallbackCookie);
 #endif //mzhu
         }
@@ -1237,7 +1256,7 @@ takePictureLiveshot(mm_camera_ch_data_buf_t* recvd_frame,
     }
 
 end:
-    LOGD("%s: X", __func__);
+    LOGE("%s: X", __func__);
     return ret;
 }
 
@@ -1595,8 +1614,8 @@ void QCameraStream_Snapshot::receiveRawPicture(mm_camera_ch_data_buf_t* recvd_fr
                                mPostviewStreamBuf.frame_len);
 */
 
-    //mHalCamCtrl->dumpFrameToFile(recvd_frame->snapshot.main.frame, HAL_DUMP_FRM_MAIN);
-    //mHalCamCtrl->dumpFrameToFile(recvd_frame->snapshot.thumbnail.frame, HAL_DUMP_FRM_THUMBNAIL);
+    mHalCamCtrl->dumpFrameToFile(recvd_frame->snapshot.main.frame, HAL_DUMP_FRM_MAIN);
+    mHalCamCtrl->dumpFrameToFile(recvd_frame->snapshot.thumbnail.frame, HAL_DUMP_FRM_THUMBNAIL);
 
     LOGE("%s: after dump", __func__);
     /* If it's raw snapshot, we just want to tell upperlayer to save the image*/

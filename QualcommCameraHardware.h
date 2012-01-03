@@ -35,6 +35,7 @@
 #include <system/camera.h>
 #include <hardware/camera.h>
 #include <gralloc_priv.h>
+#include <QComOMXMetadata.h>
 
 extern "C" {
 #include <linux/android_pmem.h>
@@ -53,6 +54,7 @@ struct buffer_map {
     msm_frame *frame;
     buffer_handle_t * buffer;
     int size;
+    int lockState;
 };
 
 typedef enum {
@@ -75,6 +77,11 @@ typedef enum {
 struct target_map {
     const char *targetStr;
     targetType targetEnum;
+};
+
+enum {
+    BUFFER_UNLOCKED,
+    BUFFER_LOCKED
 };
 
 struct board_property{
@@ -149,6 +156,7 @@ public:
     struct ion_fd_data* ion_info_fd, int ion_type, int size, int *memfd);
     int deallocate_ion_memory(int *main_ion_fd, struct ion_fd_data* ion_info_fd);
     virtual ~QualcommCameraHardware();
+    int storeMetaDataInBuffers(int enable);
 
 private:
     QualcommCameraHardware();
@@ -435,6 +443,7 @@ private:
     void initDefaultParameters();
     bool initImageEncodeParameters(int size);
     bool initZslParameter(void);
+    status_t setCameraMode(const CameraParameters& params);
     status_t setPreviewSize(const CameraParameters& params);
     status_t setJpegThumbnailSize(const CameraParameters& params);
     status_t setPreviewFpsRange(const CameraParameters& params);
@@ -445,6 +454,7 @@ private:
     status_t setJpegQuality(const CameraParameters& params);
     status_t setAntibanding(const CameraParameters& params);
     status_t setEffect(const CameraParameters& params);
+    status_t setRecordingHint(const CameraParameters& params);
     status_t setExposureCompensation(const CameraParameters &params);
     status_t setAutoExposure(const CameraParameters& params);
     status_t setWhiteBalance(const CameraParameters& params);
@@ -482,6 +492,7 @@ private:
     bool storePreviewFrameForPostview();
     bool isValidDimension(int w, int h);
     status_t updateFocusDistances(const char *focusmode);
+    int mStoreMetaDataInFrame;
 
     Mutex mLock;
 	Mutex mDisplayLock;
@@ -534,6 +545,7 @@ private:
     int mSkinToneEnhancement;
     int mHJR;
     unsigned int mThumbnailMapped[MAX_SNAPSHOT_BUFFERS];
+    unsigned int mThumbnailLockState[MAX_SNAPSHOT_BUFFERS];
     int mRawfd[MAX_SNAPSHOT_BUFFERS];
     int mRawSnapshotfd;
     int mJpegfd[MAX_SNAPSHOT_BUFFERS];
@@ -544,6 +556,7 @@ private:
     camera_memory_t *mRawSnapshotMapped;
     camera_memory_t *mStatsMapped[3];
     camera_memory_t *mRecordMapped[9];
+    camera_memory_t* metadata_memory[9];
     int raw_main_ion_fd[MAX_SNAPSHOT_BUFFERS];
     int raw_snapshot_main_ion_fd;
     int Jpeg_main_ion_fd[MAX_SNAPSHOT_BUFFERS];
