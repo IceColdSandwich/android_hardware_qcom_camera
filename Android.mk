@@ -1,6 +1,6 @@
 ifneq ($(USE_CAMERA_STUB),true)
 ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
-BUILD_LIBCAMERA:=true
+BUILD_LIBCAMERA:=false
 ifeq ($(BUILD_LIBCAMERA),true)
 
 # When zero we link against libmmcamera; when 1, we dlopen libmmcamera.
