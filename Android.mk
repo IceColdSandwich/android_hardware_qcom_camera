@@ -1,3 +1,5 @@
+ifeq ($(TARGET_CAMERA_WRAPPER),true)
+
 LOCAL_PATH := $(call my-dir)
 LIBCAMERA_BUILD := nexus
 include $(call all-subdir-makefiles)
@@ -21,3 +23,5 @@ LOCAL_C_INCLUDES       := frameworks/base/services/ frameworks/base/include
 LOCAL_C_INCLUDES       += hardware/libhardware/include/ hardware/libhardware/modules/gralloc/
 
 include $(BUILD_SHARED_LIBRARY)
+
+endif
