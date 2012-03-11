@@ -36,9 +36,7 @@
 #include <fcntl.h>
 #include <cutils/properties.h>
 #include <math.h>
-#if HAVE_ANDROID_OS
 #include <linux/android_pmem.h>
-#endif
 #include <linux/ioctl.h>
 #include <camera/CameraParameters.h>
 #include <media/mediarecorder.h>
@@ -1303,6 +1301,7 @@ void *openCamera(void *data) {
     }
     mCameraOpen = true;
     LOGV(" openCamera : X");
+#ifdef CAMERA_3D
     if (CAMERA_MODE_3D == mode) {
         camera_3d_frame_t snapshotFrame;
         snapshotFrame.frame_type = CAM_SNAPSHOT_FRAME;
@@ -1320,6 +1319,7 @@ void *openCamera(void *data) {
             LOGI("%s: 3d format  snapshot %d", __func__, obj->mSnapshot3DFormat);
         }
     }
+#endif
 
     LOGV("openCamera : X");
 //    pthread_exit((void*) ret_val);
@@ -1462,7 +1462,7 @@ QualcommCameraHardware::QualcommCameraHardware()
         mStatsMapped[i] = NULL;
     for (int i = 0; i < kRecordBufferCount; i++)
         metadata_memory[i] = NULL;
-
+#ifdef CAMERA_3D
     if(HAL_currentCameraMode == CAMERA_SUPPORT_MODE_3D){
         mIs3DModeOn = true;
     }
@@ -1473,7 +1473,7 @@ QualcommCameraHardware::QualcommCameraHardware()
         mIs3DModeOn = true;
         HAL_currentCameraMode = CAMERA_MODE_3D;
     }
-
+#endif
     if( (pthread_create(&mDeviceOpenThread, NULL, openCamera, NULL)) != 0) {
         LOGE(" openCamera thread creation failed ");
     }
@@ -5765,7 +5765,6 @@ status_t QualcommCameraHardware::sendCommand(int32_t command, int32_t arg1,
                                        mSendData = true;
                                    mStatsWaitLock.unlock();
                                    return NO_ERROR;
-#if 0
       case CAMERA_CMD_FACE_DETECTION_ON:
                                    if(supportsFaceDetection() == false){
                                         LOGI("face detection support is not available");
@@ -5815,7 +5814,6 @@ status_t QualcommCameraHardware::sendCommand(int32_t command, int32_t arg1,
              mSmoothzoomThreadLock.unlock();
              LOGV("HAL sendcmd stop smooth zoom");
              return NO_ERROR;
-#endif
    }
    return BAD_VALUE;
 }
@@ -6183,7 +6181,6 @@ void QualcommCameraHardware::receiveCameraStats(camstats_type stype, camera_prev
         memcpy((uint32_t *)((unsigned int)mStatsMapped[mCurrent]->data + sizeof(int32_t)), (uint32_t *)histinfo->buffer,(sizeof(int32_t) * 256));
 
         mStatsWaitLock.unlock();
-
         if (scb != NULL && (msgEnabled & CAMERA_MSG_STATS_DATA))
             scb(CAMERA_MSG_STATS_DATA, mStatsMapped[mCurrent], data_counter, NULL,sdata);
 
@@ -7532,14 +7529,15 @@ status_t QualcommCameraHardware::setPreviewFormat(const CameraParameters& params
     if(previewFormat != NOT_FOUND) {
         mParameters.set(CameraParameters::KEY_PREVIEW_FORMAT, str);
         mPreviewFormat = previewFormat;
-/*        if(HAL_currentCameraMode != CAMERA_MODE_3D) {
+#ifdef CAMERA_3D
+       if(HAL_currentCameraMode != CAMERA_MODE_3D) {
             LOGI("Setting preview format to native");
             bool ret = native_set_parms(CAMERA_PARM_PREVIEW_FORMAT, sizeof(previewFormat),
                                        (void *)&previewFormat);
         }else{
             LOGI("Skipping set preview format call to native");
         }
-*/
+#endif
         return NO_ERROR;
     }
     LOGE("Invalid preview format value: %s", (str == NULL) ? "NULL" : str);
@@ -9084,10 +9082,12 @@ void QualcommCameraHardware::getCameraInfo()
     LOGI("getCameraInfo: OUT");
 }
 
+#ifdef CAMERA_3D
 extern "C" int HAL_isIn3DMode()
 {
     return HAL_currentCameraMode == CAMERA_MODE_3D;
 }
+#endif
 
 extern "C" int HAL_getNumberOfCameras()
 {
@@ -9129,10 +9129,12 @@ extern "C" void HAL_getCameraInfo(int cameraId, struct CameraInfo* cameraInfo)
             LOGI("%s: orientation = %d", __FUNCTION__, cameraInfo->orientation);
             sensor_rotation = HAL_cameraInfo[i].sensor_mount_angle;
             cameraInfo->mode = 0;
+#ifdef CAMERA_3D
             if(HAL_cameraInfo[i].modes_supported & CAMERA_MODE_2D)
                 cameraInfo->mode |= CAMERA_SUPPORT_MODE_2D;
             if(HAL_cameraInfo[i].modes_supported & CAMERA_MODE_3D)
                 cameraInfo->mode |= CAMERA_SUPPORT_MODE_3D;
+#endif
 /*
             if((HAL_cameraInfo[i].position == BACK_CAMERA )&&
                 !strncmp(mDeviceName, "msm8660", 7)){

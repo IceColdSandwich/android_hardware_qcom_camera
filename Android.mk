@@ -1,7 +1,4 @@
-ifneq ($(USE_CAMERA_STUB),true)
-ifeq ($(strip $(BOARD_USES_QCOM_HARDWARE)), true)
-BUILD_LIBCAMERA:=true
-ifeq ($(BUILD_LIBCAMERA),true)
+ifeq ($(TARGET_DZO_CAMERA),true)
 
 # When zero we link against libmmcamera; when 1, we dlopen libmmcamera.
 DLOPEN_LIBMMCAMERA:=1
@@ -22,6 +19,10 @@ LOCAL_C_INCLUDES += \
         frameworks/base/services/camera/libcameraservice #
 
 LOCAL_SRC_FILES := $(LOCAL_HAL_FILES)
+
+#ifeq ($(TARGET_HARDWARE_3D),true)
+#  LOCAL_CFLAGS += -DCAMERA_3D
+#endif
 
 LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=4 -D_ANDROID_
 
@@ -45,6 +46,4 @@ LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif # BUILD_TINY_ANDROID
-endif # BUILD_LIBCAMERA
-endif # BOARD_USES_QCOM_HARDWARE
-endif # USE_CAMERA_STUB
+endif # TARGET_DZO_CAMERA

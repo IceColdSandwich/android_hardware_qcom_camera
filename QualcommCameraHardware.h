@@ -18,17 +18,13 @@
 #ifndef ANDROID_HARDWARE_QUALCOMM_CAMERA_HARDWARE_H
 #define ANDROID_HARDWARE_QUALCOMM_CAMERA_HARDWARE_H
 
-#define ICS
-
 //#include <camera/CameraHardwareInterface.h>
 #include <utils/threads.h>
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 #include <stdint.h>
 #include <ui/egl/android_natives.h>
-#ifdef ICS
 #include <hardware/camera.h>
-#endif
 #include <camera/Camera.h>
 #include <camera/CameraParameters.h>
 #include <system/window.h>
@@ -131,10 +127,8 @@ public:
     virtual sp<IMemory> getVideoBuffer(int32_t index);
     virtual status_t getBufferInfo( sp<IMemory>& Frame, size_t *alignedSize);
     virtual void encodeData( );
-#ifdef ICS
     virtual status_t set_PreviewWindow(void* param);
     virtual status_t setPreviewWindow(preview_stream_ops_t* window);
-#endif
     virtual status_t setPreviewWindow(const sp<ANativeWindow>& buf) {return NO_ERROR;};
     virtual void release();
 
