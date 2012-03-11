@@ -29,6 +29,7 @@
 
 #include <camera/Camera.h>
 #include <hardware/camera.h>
+#include <system/camera.h>
 #include <utils/String16.h>
 #include <sys/types.h>
 #include <sys/stat.h>
