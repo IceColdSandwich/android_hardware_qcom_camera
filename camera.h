@@ -5,15 +5,9 @@
 #include "msm_camera.h"
 #include <pthread.h>
 
-#ifdef _ANDROID_
-  #define MSM_CAMERA_CONTROL "/dev/msm_camera/control%d"
-  #define MSM_CAMERA_CONFIG  "/dev/msm_camera/config%d"
-  #define MSM_CAMERA_FRAME   "/dev/msm_camera/frame%d"
-#else
-  #define MSM_CAMERA_CONTROL "/dev/control%d"
-  #define MSM_CAMERA_CONFIG  "/dev/config%d"
-  #define MSM_CAMERA_FRAME   "/dev/frame%d"
-#endif
+#define MSM_CAMERA_CONTROL "/dev/msm_camera/control%d"
+#define MSM_CAMERA_CONFIG  "/dev/msm_camera/config%d"
+#define MSM_CAMERA_FRAME   "/dev/msm_camera/frame%d"
 
 #define TRUE (1)
 #define FALSE (0)

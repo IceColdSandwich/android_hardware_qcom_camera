@@ -24,6 +24,10 @@ ifeq ($(TARGET_HARDWARE_3D),true)
   LOCAL_CFLAGS += -DCAMERA_3D
 endif
 
+ifeq ($(TARGET_USES_ION),true)
+  LOCAL_CFLAGS += -DUSE_ION
+endif
+
 ifeq ($(TARGET_BOARD_PLATFORM),msm7627)
     LOCAL_CFLAGS += -DTARGET7x27
 endif
