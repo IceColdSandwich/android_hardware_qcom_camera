@@ -2111,9 +2111,11 @@ bool QualcommCameraHardware::startCamera()
     }
 #if DLOPEN_LIBMMCAMERA
 
-    LOGV("loading liboemcamera at %p", libmmcamera);
+    //LOGV("loading liboemcamera at %p", libmmcamera);
+    LOGV("loading libcamera at %p", libmmcamera);
     if (!libmmcamera) {
-        LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+        //LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+        LOGE("FATAL ERROR: could not dlopen libcamera.so: %s", dlerror());
         return false;
     }
 
@@ -8462,9 +8464,11 @@ QualcommCameraHardware::MMCameraDL::MMCameraDL(){
     LOGV("MMCameraDL: E");
     libmmcamera = NULL;
 #if DLOPEN_LIBMMCAMERA
-    libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
+    //libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
+    libmmcamera = ::dlopen("libcamera.so", RTLD_NOW);
 #endif
-    LOGV("Open MM camera DL libeomcamera loaded at %p ", libmmcamera);
+    //LOGV("Open MM camera DL libeomcamera loaded at %p ", libmmcamera);
+    LOGV("Open MM camera DL libcamera loaded at %p ", libmmcamera);
     LOGV("MMCameraDL: X");
 }
 
@@ -9048,7 +9052,8 @@ void QualcommCameraHardware::getCameraInfo()
     mm_camera_status_t status;
 
 #if DLOPEN_LIBMMCAMERA
-    void *libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
+    //void *libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
+    void *libhandle = ::dlopen("libcamera.so", RTLD_NOW);
     LOGI("getCameraInfo: loading libqcamera at %p", libhandle);
     if (!libhandle) {
         LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
